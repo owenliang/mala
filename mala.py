@@ -106,11 +106,12 @@ class WirePeerClient:
 
         return bdecode(metainfo)
 
-    # 1, 先是peer wire协议是外层, 需要先双向握手（我主动）, 然后后续通讯外层都需要按照length,bitorrent message id(传20),payload，因此下来的extend扩展协议是包装在payload内部的。
-    # 2, payload内依次放置extended message id标识extended message的类型, 传0表示握手, 那么后面紧随bencode编码字典携带ut_metadata字段告知对方在握手应答中携带meta基本信息。
-    # 3, 对方会回复握手, extended message id也为0, 后面的bencode里会携带metadata_size, 我们就此可以算出metadata一共分成了几个16k的片段
-    # 4, 接下来每次extend message id使用ut_metadata对应的数字id, 后面bencode编码字典中msg_type传0表示请求meta, piece传分片下标
-    # 5, 对方回复的bencode中会有msg_type=1表示meta数据,piece下标, total_size表示分片大小, 在bencode之后就是二进制的meta片段数据.
+    # 1, 通讯基础是peer wire协议（外层协议）, 需要先完成双向握手（我们先发起）, 一旦双向握手完成，后续通讯则按照length,bitorrent message id(固定传20),payload即可。
+    # 2, 接下来是扩展协议，它存储在payload内。payload内首先是extended message id标识了extended message的类型, 传0表示握手, 那么后面紧随bencode编码字典携带ut_metadata字段告知对方在握手应答中携带meta基本信息。
+    # 3, 对方会回复扩展协议的握手, extended message id也为0, 后面的bencode里会携带metadata_size, 我们就此可以算出metadata一共分成了几个16k的片段
+    # 4, 接下发送下载请求，extend message id使用ut_metadata对应的数字id, 后面bencode编码字典中msg_type传0表示请求metadata, piece传分片下标。
+    # 5, 对方回复的bencode中会有msg_type=1表示返回metadata数据,piece是分片下标, total_size表示分片大小, 在bencode之后就是二进制的meta片段数据.
+    # 6, 依次请求各个piece下载回来，拼装到一起就是metadata。需要对metadata做sha1校验与infohash相等，并做bencode解码得到一个字典.
     # 相关链接：http://blog.chinaunix.net/uid-14408083-id-2814554.html
     # http://www.aneasystone.com/archives/2015/05/analyze-magnet-protocol-using-wireshark.html
     async def work(self):
