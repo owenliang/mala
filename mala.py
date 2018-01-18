@@ -114,6 +114,9 @@ class WirePeerClient:
     # 6, 依次请求各个piece下载回来，拼装到一起就是metadata。需要对metadata做sha1校验与infohash相等，并做bencode解码得到一个字典.
     # 相关链接：http://blog.chinaunix.net/uid-14408083-id-2814554.html
     # http://www.aneasystone.com/archives/2015/05/analyze-magnet-protocol-using-wireshark.html
+    # http://www.bittorrent.org/beps/bep_0003.html
+    # http://www.bittorrent.org/beps/bep_0009.html
+    # http://www.bittorrent.org/beps/bep_0010.html
     async def work(self):
         self.writer.write(BT_HEADER + self.infohash + self.peer_id)
         while True:
